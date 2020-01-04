@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::Path;
-use std::collections::HashMap;
+use std::path::PathBuf;
+// use std::collections::HashMap;
 
 extern crate time;
 // #[macro_use]
@@ -49,32 +50,60 @@ fn get_from_html(file_path: &Path) -> Vec<String> { // ?Result
 }
 
 fn del_existing(all: Vec<String>, test: Vec<String>) -> Vec<String> {
-    let mut res = Vec::new();
+    let mut result = Vec::new();
     for i in test {
         let j: Vec<&str> = i.split("://").collect();
         if j.len() > 1 {
             if !all.contains(&j[1].to_string()) {
-                res.push(i);
+                result.push(i);
             }
         }
         else {
-            println!("{:?}", &j);
+            result.push(j[0].to_string());
         }
     }
+    result.sort_unstable();
+    result.dedup();
+    return result;
+}
 
-    return res;
+fn get_from_folder(folder_path: &Path) -> Vec<String> {
+    let mut result: Vec<String> = Vec::new();
+    for path in fs::read_dir(folder_path).unwrap() {
+        result.append(
+            &mut fs::read_to_string(path.unwrap().path())
+            .unwrap()
+            .split("\n")
+            .filter(|i| i.starts_with("http"))
+            .map(String::from)
+            .collect());
+    }
+    result.sort_unstable(); // use itertools::Itertools;
+    result.dedup(); // let v: Vec<_> = v.into_iter().unique().collect();
+    return result;
 }
 
 fn main() -> std::io::Result<()> {
-    let mut tabs: Vec<String> = Vec::new();
-    for path in fs::read_dir(r#"C:\Users\Asus\Desktop\firefox_resolve\tabs"#).unwrap() {
-        tabs.append(&mut fs::read_to_string(path?.path())?.split("\n").map(String::from).collect());
-    }
-
     let source_path = Path::new(r#"C:\Users\Asus\Desktop\firefox_resolve\bookmarks_firefox_180829_2014_copy_copy.html"#);
     let source = get_from_html(source_path);
-    let mut all_links = get_from_html(Path::new(r#"C:\Users\Asus\Desktop\bookmarks_firefox_191120_2052_noicons.html"#));
-    all_links.append(&mut tabs);
+
+    let mut all_links = get_from_folder(Path::new(r#"C:\Users\Asus\Desktop\firefox_resolve\tabs"#));
+    all_links.extend(
+        &mut get_from_html(Path::new(r#"C:\Users\Asus\Desktop\bookmarks_firefox_191120_2052_noicons.html"#))
+        .iter()
+        .filter(|i| i.starts_with("http"))
+        .map(String::from));
+    
+    all_links = all_links.iter().map(|i| {
+        let j: Vec<&str> = i.split("://").collect();
+        if j.len() > 1 {
+            return j[1].to_string();
+        } else {
+            return j[0].to_string();
+        }}).collect();
+    // fs::write("C:\\Users\\Asus\\Desktop\\alltabs1.txt", all_links.join("\n")).expect("Unable write to file");
+
+    //let a: PathBuf = source_path.parent().unwrap().join(source_path.file_stem().unwrap().to_str().unwrap().to_string().push_str("_uniq_links_rs.txt"));
 
     fs::write("C:\\Users\\Asus\\Desktop\\test.txt", del_existing(all_links, source).join("\n")).expect("Unable write to file");
 
