@@ -84,7 +84,8 @@ fn get_from_folder(folder_path: &Path) -> Vec<String> {
 }
 
 fn main() -> std::io::Result<()> {
-    let source_path = Path::new(std::env::args().nth(1).unwrap());
+    let a = std::env::args().nth(1).unwrap();
+    let source_path = Path::new(&a);
     //Path::new(r#"C:\Users\Asus\Desktop\firefox_resolve\bookmarks_firefox_180829_2014_copy_copy.html"#);
     let source = get_from_html(source_path);
 
