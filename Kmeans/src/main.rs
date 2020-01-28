@@ -26,9 +26,9 @@ impl Distribution<PPoint> for Standard {
 
 struct Kmeans {
     clcn: Vec<Vec<f64>>,
-    lbs: Vec<u8>,
+    lbs:  Vec<u8>,
     ncls: u8,
-    tol: f64
+    tol:  f64
 }
 
 // fn d2(p1: PPoint, p2: PPoint) -> f64 {
@@ -36,7 +36,7 @@ struct Kmeans {
 // }
 
 fn to_list(ps: Vec<PPoint>) -> Vec<(f64, f64)> {
-    ps.into_iter().map(|p| {(p.x, p.y)}).collect()
+    ps.iter().map(|p| {(p.x, p.y)}).collect()
 }
 
 fn norm(x: Vec<f64>) -> f64 {
@@ -44,6 +44,9 @@ fn norm(x: Vec<f64>) -> f64 {
 }
 
 fn sub(a: Vec<f64>, b: Vec<f64>) -> Vec<f64> {
+    if a.len() != b.len() {
+        println!("Length doesn't match")
+    }
     let mut z: Vec<f64> = vec![0.0];
     for (i, (aval, bval)) in a.iter().zip(&b).enumerate() {
         z[i] = aval - bval;
@@ -76,7 +79,12 @@ fn predict(km: Kmeans, x: Vec<Vec<f64>>) -> Vec<u8> {
 fn fit(mut km: Kmeans, x: Vec<Vec<f64>>) -> Kmeans {
     let mut rng = &mut rand::thread_rng();
     let smp = x.len();
-    let clcn_n: Vec<i32> = (0..smp as i32).collect::<Vec<i32>>().as_slice().choose_multiple(&mut rng, km.ncls as usize).cloned().collect();
+    let clcn_n: Vec<i32> = (0..smp as i32)
+                            .collect::<Vec<i32>>()
+                            .as_slice()
+                            .choose_multiple(&mut rng, km.ncls as usize)
+                            .cloned()
+                            .collect();
     println!("{:?}", clcn_n);
     km.clcn = Vec::new();
     for i in 0..clcn_n.len() {
@@ -108,6 +116,7 @@ fn fit(mut km: Kmeans, x: Vec<Vec<f64>>) -> Kmeans {
         //         nc.push(x[i as usize].iter().map(|l| l.sum::<f64>() / (x[i as usize].len() as f64)).collect());
         //     }
         // }
+        
         //if (abs(sub(nc, clcn)) < self.tol).all(): break
         if true {
             break
@@ -125,7 +134,7 @@ fn main() {
         arr.push(rng.gen());
     }
 
-    let mut km = Kmeans {
+    let km = Kmeans {
         clcn: Vec::new(),
         lbs: Vec::new(),
         ncls: 3,
@@ -142,7 +151,8 @@ fn main() {
                 vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
                 vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0]]);
 
-    let s: Scatter = Scatter::from_slice(&to_list(arr)[..]).style(&Style::new()
+    let s: Scatter = Scatter::from_slice(&to_list(arr)[..]).style(
+        &Style::new()
         .marker(Marker::Square)
         .colour("#DD3355"));
     let v = ContinuousView::new()
