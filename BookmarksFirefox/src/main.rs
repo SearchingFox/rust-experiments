@@ -12,9 +12,11 @@ fn deduplicate(inp: &Vec<String>) -> Vec<String> {
 }
 
 fn del_http(url: String) -> String {
-    let t = url.split("://").collect::<Vec<_>>();
-    if t.len() > 1 {
-        return t[1].to_string()
+    if url.starts_with("http") {
+        let t = url.splitn(2, "://").collect::<Vec<_>>();
+        if t.len() > 1 {
+            return t[1].to_string()
+        }
     }
     url
 }
@@ -36,58 +38,50 @@ fn get_from_folder(folder_path: &Path) -> Vec<String> {
             fs::read_to_string(file.unwrap().path())
             .unwrap()
             .split("\n")
-            .filter(|i| i.starts_with("http"))
+            // .filter(|i| i.starts_with("http"))
             .map(|i| del_http(i.to_string()))
             .collect::<Vec<_>>());
     }
     deduplicate(&result)
 }
 
-fn del_existing(all: Vec<String>, test: Vec<String>, format: &str) -> Vec<String> {
+fn del_existing(all_urls: Vec<String>, test_urls: Vec<String>, format: &str) -> Vec<String> {
     let mut result = Vec::new();
-    for (i, j) in (&test).iter().enumerate() {
-        // let t: Vec<&str> = i.split("://").collect();
-        // if t.len() > 1 {
-        //     if !all.contains(&t[1].to_string()) {
-        //         result.push(i);
-        //     }
-        // }
-        // else {
-        //     result.push(t[0].to_string());
-        // }
-        if format == "new" && i % 2 == 1 {
-            if !all.contains(&del_http(j.to_string())) {
+    if format == "new" {
+        for (i, j) in (&test_urls).iter().enumerate() {
+            if i % 2 == 1 && !all_urls.contains(&del_http(j.to_string())) {
                 result.push(j.to_string());  // ? or .clone()
             }
         }
-        
+    } else if format == "old" {
+        for i in test_urls {
+            if !all_urls.contains(&del_http(i.to_string())) {
+                result.push(i.to_string());
+            }
+        }
     }
     deduplicate(&result)
 }
 
 fn main() -> std::io::Result<()> {
-    // let source_path = Path::new(r#"C:\Users\Asus\Desktop\firefox_resolve\tabs_191004_0445.txt"#);
-    let arg = std::env::args().nth(1).expect("no file given");
-    let source_path = Path::new(&arg);
-    // if std::env::args().len() > 1 {
-    //     let a = 
-    //      = Path::new(&a);
-    // }
+    let source_path = Path::new(r#""#);
+    // let arg = std::env::args().nth(1).expect("no file given");
+    // let source_path = Path::new(&arg);
     
     let source = fs::read_to_string(source_path)?.split("\n").map(String::from).collect::<Vec<_>>();
     let bookmarks_path = Path::new(r#"C:\Users\Asus\Desktop\bookmarks_firefox_200723_0329_noicons.html"#);
 
-    let mut all_links = get_from_folder(Path::new(r#"C:\Users\Asus\Desktop\firefox_resolve\tabs"#));
-    all_links.extend(get_from_html(bookmarks_path));
+    let mut all_urls = get_from_folder(Path::new(r#"C:\Users\Asus\Desktop\firefox_resolve\tabs"#));
+    all_urls.extend(get_from_html(bookmarks_path));
 
-    let res = del_existing(all_links, source, "new");
+    let result = del_existing(all_urls, source, "new");
     println!("notin bookmarks: {}", res.len());
 
     fs::write(
         source_path.parent().unwrap().join(
         source_path.file_stem().unwrap().to_str()
         .unwrap().to_string() + "_uniq_links_rusted1.txt"),
-        res.join("\n")
+        result.join("\n")
     ).expect("Unable write to file");
 
     Ok(())
