@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
@@ -10,22 +9,21 @@ use sdl2::video::Window;
 use std::error::Error;
 use std::time::Duration;
 
-const WINDOW_WIDTH: u32  = 1900;
-const WINDOW_HEIGHT: u32 = 1040;
-const BACKGROUND: Color = Color::RGB(255, 255, 255); // Color::RGB(18, 18, 18);
-const FOREGROUND: Color = Color::RGB(0, 0, 0); // Color::RGB(255, 150, 150);
+const WINDOW_WIDTH: u32  = 1900; //2500
+const WINDOW_HEIGHT: u32 = 1060;
 
 type Complex = (f64, f64);
 
-fn mand((a, b): Complex) -> Color {
+fn mandelbrot((a, b): Complex) -> Color {
     let mut t = (0.0, 0.0);
-    for _ in 0..100 {
-        t = (t.0 * t.0 - t.1 * t.1 + a, 2.0 * t.0 * t.1 + b);
-        if f64::sqrt(t.0 * t.0 + t.1 * t.1) > 2.0 {
-            return Color::RGB(255, 255, 255);
+    for i in 0..1000 {
+        t = (t.0*t.0 - t.1*t.1 + a, 2.0*t.0*t.1 + b);
+        if f64::sqrt(t.0*t.0 + t.1*t.1) > 4.0 {
+            return Color::RGB((i % 255) as u8, (i % 255) as u8, (i * 10 % 255) as u8)
+            // return Color::RGB(i * 20 % 255, i * 20 % 255, i * 20 % 255);
         }
     }
-    return Color::RGB(0, 0, 0);
+    Color::RGB(0, 0, 0)
 }
 
 fn what((a, b): Complex) -> Color {
@@ -37,67 +35,50 @@ fn what((a, b): Complex) -> Color {
             return Color::RGB(255, 255, 255);
         }
     }
-    return Color::RGB(0, 0, 0);
+    Color::RGB(0, 0, 0)
 }
 
-fn burning((x, y): Complex) -> Color {
-    let mut zx = x + 0.5;
-    let mut zy = y + 0.5;
+fn burning_ship((a, b): Complex) -> Color {
+    let mut zx = a + 0.5;
+    let mut zy = b;
     let mut iter = 0;
-    let mi: u32 = 100;
+    let mi: u32 = 1000;
     while (zx*zx + zy*zy < 4.0 && iter < mi) {
-        let xtemp = zx*zx - zy*zy + x;
-        zy = f64::abs(2.0*zx*zy + y);
+        let xtemp = zx*zx - zy*zy + a;
+        zy = f64::abs(2.0*zx*zy + b);
         zx = f64::abs(xtemp);
         iter += 1;
     }
-    if iter == mi {
+    if iter == mi { // Belongs to the set
         return Color::RGB(100, 0, 0);
-    } // Belongs to the set
-    return Color::RGB(0, iter as u8, 0);//iter as u8, iter as u8);
+    }
+    return Color::RGB(220, (iter * 10 % 255) as u8, (iter * 10 % 255) as u8);
 }
 
 fn to_compl_plain(x: u32, y: u32) -> Complex {
-    return ((x as f64 - WINDOW_WIDTH as f64 / 2.0) / (WINDOW_WIDTH as f64 / 3.0),
-            (y as f64 - WINDOW_HEIGHT as f64 / 2.0) / (WINDOW_HEIGHT as f64 / 2.0))
+    return ((x as f64 - WINDOW_WIDTH as f64 / 2.) * 3.4 / WINDOW_WIDTH as f64,
+            (y as f64 - WINDOW_HEIGHT as f64 / 2.) * 2. / WINDOW_HEIGHT as f64)
+}
+
+fn to_window((a, b): Complex) -> (u32, u32) {
+    return ((a as f64 * WINDOW_WIDTH as f64 / 3.4 + WINDOW_WIDTH as f64 / 2.) as u32,
+            (b as f64 * WINDOW_HEIGHT as f64 / 2. - WINDOW_HEIGHT as f64 / 2.) as u32)
 }
 
 pub fn main_fractals() -> Result<(), Box<dyn Error>> {
     let sdl_context = sdl2::init()?;
-    let video_subsystem = sdl_context.video()?;
-
-    let window = video_subsystem.window("test", WINDOW_WIDTH, WINDOW_HEIGHT)
+    let window = sdl_context.video()?
+        .window("Fractals", WINDOW_WIDTH, WINDOW_HEIGHT)
         .position_centered()
-        .build()
-        .map_err(|e| e.to_string())?;
+        .build()?;
 
-    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
-    //let texture_creator = canvas.texture_creator();
-
-    // let mut texture = texture_creator.create_texture_streaming(PixelFormatEnum::RGB24, WINDOW_HEIGHT, WINDOW_WIDTH).map_err(|e| e.to_string())?;
-    // // Create a red-green gradient
-    // texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-    //     for y in 0..WINDOW_WIDTH {
-    //         for x in 0..WINDOW_HEIGHT {
-    //             let offset: usize = (y*pitch as u32 + x*3) as usize;
-    //             buffer[offset] = x as u8;
-    //             buffer[offset + 1] = y as u8;
-    //             buffer[offset + 2] = 0;
-    //         }
-    //     }
-    // })?;
-
-    //canvas.clear();
-    // canvas.copy(&texture, None, Some(Rect::new(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)))?;
-    // canvas.copy_ex(&texture, None,
-    //     Some(Rect::new(450, 100, 256, 256)), 30.0, None, false, false)?;
-    //canvas.present();
+    let mut canvas = window.into_canvas().build()?;
 
     let mut cache: Vec<Vec<Color>> = vec![vec![Color::RGB(0, 0, 0); WINDOW_HEIGHT as usize]; WINDOW_WIDTH as usize];
-
     for i in 0..WINDOW_WIDTH {
         for j in 0..WINDOW_HEIGHT {
-            cache[i as usize][j as usize] = burning(to_compl_plain(i, j))
+            // ? maybe change transition to from complex plane to screen
+            cache[i as usize][j as usize] = burning_ship(to_compl_plain(i, j));
         }
     }
 
@@ -106,27 +87,10 @@ pub fn main_fractals() -> Result<(), Box<dyn Error>> {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                    break 'running
-                },
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => { break 'running },
                 _ => {}
             }
         }
-
-        canvas.set_draw_color(Color::RGB(1, 1, 1));
-        canvas.clear();
-
-        // for i in 0..WINDOW_WIDTH {
-        //     for j in 0..WINDOW_HEIGHT {
-        //         let t: Point = Point::new(i as i32, j as i32);
-        //         if cache[i as usize][j as usize] {
-        //             canvas.set_draw_color(FOREGROUND);
-        //         } else {
-        //             canvas.set_draw_color(BACKGROUND);
-        //         }
-        //         canvas.draw_point(t);
-        //     }
-        // }
         
         for i in 0..WINDOW_WIDTH {
             for j in 0..WINDOW_HEIGHT {
@@ -138,8 +102,8 @@ pub fn main_fractals() -> Result<(), Box<dyn Error>> {
 
         canvas.present();
 
-        const FPS: u32 = 1;
-        ::std::thread::sleep(Duration::new(1, 1_000_000_000u32 / FPS));
+        const FPS: u32 = 5;
+        std::thread::sleep(Duration::new(1, 1_000_000_000u32 / FPS));
     }
 
     Ok(())
