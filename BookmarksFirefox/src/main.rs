@@ -1,3 +1,4 @@
+#![feature(try_trait)]
 use std::fs;
 use std::path::Path;
 
@@ -45,7 +46,7 @@ fn get_from_folder(folder_path: &Path) -> Vec<String> {
     deduplicate(&result)
 }
 
-fn del_existing(all_urls: Vec<String>, test_urls: Vec<String>, format: &str) -> Vec<String> {
+fn del_existing(all_urls: &Vec<String>, test_urls: &Vec<String>, format: &str) -> Vec<String> {
     let mut result = Vec::new();
     if format == "new" {
         for (i, j) in (&test_urls).iter().enumerate() {
@@ -63,25 +64,23 @@ fn del_existing(all_urls: Vec<String>, test_urls: Vec<String>, format: &str) -> 
     deduplicate(&result)
 }
 
-fn main() -> std::io::Result<()> {
-    let source_path = Path::new(r#""#);
+fn main() -> Result<(), Box<std::option::NoneError>> {
     // let arg = std::env::args().nth(1).expect("no file given");
     // let source_path = Path::new(&arg);
-    
-    let source = fs::read_to_string(source_path)?.split("\n").map(String::from).collect::<Vec<_>>();
-    let bookmarks_path = Path::new(r#"C:\Users\Asus\Desktop\bookmarks_firefox_200723_0329_noicons.html"#);
+    let source_path = Path::new(r#""#);
+    let source = fs::read_to_string(source_path).unwrap().split("\n").map(String::from).collect::<Vec<_>>();
 
+    let bookmarks_path = Path::new(r#"C:\Users\Asus\Desktop\bookmarks_firefox_200723_0329_noicons.html"#);
     let mut all_urls = get_from_folder(Path::new(r#"C:\Users\Asus\Desktop\firefox_resolve\tabs"#));
     all_urls.extend(get_from_html(bookmarks_path));
 
-    let result = del_existing(all_urls, source, "new");
-    println!("notin bookmarks: {}", res.len());
+    let result = del_existing(&all_urls, &source, "new");
+    println!("notin bookmarks: {}", result.len());
 
     fs::write(
-        source_path.parent().unwrap().join(
-        source_path.file_stem().unwrap().to_str()
-        .unwrap().to_string() + "_uniq_links_rusted1.txt"),
-        result.join("\n")
+        source_path.parent()?.join(
+            source_path.file_stem()?.to_str()?.to_string() + "_uniq_rusted.txt"
+        ), result.join("\n")
     ).expect("Unable write to file");
 
     Ok(())
