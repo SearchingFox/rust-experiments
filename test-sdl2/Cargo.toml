@@ -1,6 +1,6 @@
 [package]
 name = "test-sdl2"
-version = "0.3.0"
+version = "0.5.0"
 authors = ["ASNordroid <n3tstrang3r@yandex.ru>"]
 edition = "2018"
 
