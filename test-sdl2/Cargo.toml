@@ -1,6 +1,6 @@
 [package]
 name = "test-sdl2"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["ASNordroid <n3tstrang3r@yandex.ru>"]
 edition = "2018"
 
@@ -10,3 +10,4 @@ edition = "2018"
 sdl2 = "0.34.2"
 rand = "0.7.3"
 png = "0.16.7"
+rayon = "1.1"
