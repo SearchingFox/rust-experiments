@@ -1,0 +1,9 @@
+[package]
+name = "notes-graph"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+rand = "^0"
+regex = "^1"
+sdl2 = "^0"
