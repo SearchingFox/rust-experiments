@@ -90,6 +90,19 @@ fn burning_ship((a, b): Complex) -> Color {
     Color::BLACK
 }
 
+fn feather((a, b): Complex) -> Color {
+    let mut z = (a, b);
+    for i in 0..1000 {
+        let t = cdiv(cpow(z, 3), cmul((1.0, 0.0), cpow(z, 2)));
+        z.0 = (t.0 + a) / 1.2;
+        z.1 = (t.1 + b) / 1.2;
+        if f64::sqrt(z.0 * z.0 + z.1 * z.1) > 4.0 {
+            return Color::RGB(100 + (i % 155) as u8, 30 + (i % 100) as u8, 0)
+        }
+    }
+    Color::BLACK
+}
+
 fn cmul((a, b): Complex, (c, d): Complex) -> Complex {
     (a * c - b * d, a * d + b * c)
 }
@@ -102,7 +115,7 @@ fn cdiv((a, b): Complex, (c, d): Complex) -> Complex {
 fn cpow(z: Complex, n: i32) -> Complex {
     let mut t = (z.0, z.1);
     for _ in 1..n {
-	t = cmul(t, z)
+        t = cmul(t, z)
     }
     t
 }
@@ -112,44 +125,42 @@ fn newton((a, b): Complex) -> Color {
     //     , 2.0 / 3.0 * z.1 - 1.0 / (6.0 * z.0 * z.1 + (3.0 * (z.0 * z.0 - z.1 * z.1)) * (3.0 * (z.0 * z.0 - z.1 * z.1)) / (6.0 * z.0 * z.1)) );
 
     fn f(z: Complex) -> Complex {
-        // let t = cmul(z, cmul(z, z));
-	// (t.0 - 1.0, t.1)
-	let t = cpow(z, 8);
-	let t2 = cpow(z, 4);
-	(t.0 + 15.0 * t2.0 - 16.0, t.1 + 15.0 * t2.1)
+        let t = cpow(z, 8);
+        let t2 = cpow(z, 4);
+        (t.0 + 15.0 * t2.0 - 16.0, t.1 + 15.0 * t2.1)
     }
 
     fn df(z: Complex) -> Complex {
-	// let t = cmul(z, z);
-	// (3.0 * t.0, 3.0 * t.1)  // (3.0 * z.0, 3.0 * z.1)
-	let t = cpow(z, 7);
-	let t2 = cpow(z, 3);
-	(8.0 * t.0 + 15.0 * 4.0 * t2.0, 8.0 * t.1 + 15.0 * 4.0 * t2.1)
+        // let t = cmul(z, z);
+        // (3.0 * t.0, 3.0 * t.1)  (3.0 * z.0, 3.0 * z.1)
+        let t = cpow(z, 7);
+        let t2 = cpow(z, 3);
+        (8.0 * t.0 + 15.0 * 4.0 * t2.0, 8.0 * t.1 + 15.0 * 4.0 * t2.1)
     }
-    
+
     // let roots: [(f64, f64, Color); 3] = [ (1.0, 0.0, Color::RED)
     // 	       	      	   	        , (-0.5, f64::sqrt(3.0)/2.0, Color::BLUE)
     // 					, (-0.5, -f64::sqrt(3.0)/2.0, Color::GREEN)];
     let roots = [ (-1.0, 0.0, Color::RGB(100, 10, 100))
                 , ( 1.0, 0.0, Color::RGB(130, 130, 130))
-		, (0.0, -1.0, Color::RGB(160, 16, 160))
-	        , (0.0,  1.0, Color::RGB(190, 190, 190))
-		, (-1.41421356237310, -1.41421356237310, Color::RGB(70, 100, 100)) // interesting: 1.4142
+                , (0.0, -1.0, Color::RGB(160, 16, 160))
+                , (0.0,  1.0, Color::RGB(190, 190, 190))
+                , (-1.41421356237310, -1.41421356237310, Color::RGB(70, 100, 100)) // interesting: 1.4142
                 , ( 1.41421356237310,  1.41421356237310, Color::RGB(130, 70, 130))
-		, ( 1.41421356237310, -1.41421356237310, Color::RGB(160, 160, 70))
-		, (-1.41421356237310,  1.41421356237310, Color::RGB(1, 1, 1))];
-    
+                , ( 1.41421356237310, -1.41421356237310, Color::RGB(160, 160, 70))
+                , (-1.41421356237310,  1.41421356237310, Color::RGB(1, 1, 1))
+    ];
+
     let mut z = (a, b);
     for _ in 0..1000 {
         let t = cdiv(f(z), df(z));
-	z = (z.0 - t.0, z.1 - t.1);
-	for i in 0..roots.len() {
-	    let (dx, dy) = ((z.0 - roots[i].0).abs(), (z.1 - roots[i].1).abs());
-	    if dx < 0.00001 && dy < 0.00001 {
-	       return roots[i].2
-	    }
-	}
-      
+        z = (z.0 - t.0, z.1 - t.1);
+        for i in 0..roots.len() {
+            let (dx, dy) = ((z.0 - roots[i].0).abs(), (z.1 - roots[i].1).abs());
+            if dx < 0.00001 && dy < 0.00001 {
+               return roots[i].2
+            }
+        }
     }
     Color::BLACK
 }
@@ -174,7 +185,7 @@ pub fn main_fractals() -> Result<(), Box<dyn std::error::Error>> {
     // let cache: Vec<Color> = (0..(WINDOW_HEIGHT * WINDOW_WIDTH)).collect::<Vec<u32>>().par_iter()
     //             .map(|l| newton(to_compl_plain(-1.8, 1.0, -1.0, 1.0, l / WINDOW_HEIGHT, l % WINDOW_HEIGHT))).collect();
     let cache: Vec<Color> = (0..(WINDOW_HEIGHT * WINDOW_WIDTH)).collect::<Vec<u32>>().par_iter()
-                .map(|l| newton(to_compl_plain_old(l / WINDOW_HEIGHT, l % WINDOW_HEIGHT))).collect();
+                .map(|l| feather(to_compl_plain_old(l / WINDOW_HEIGHT, l % WINDOW_HEIGHT))).collect();
 
     println!("{}", now.elapsed().as_millis());
 
