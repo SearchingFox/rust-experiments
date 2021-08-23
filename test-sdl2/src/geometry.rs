@@ -1,18 +1,13 @@
-#![allow(dead_code)]
-
+use rand::Rng;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
-use sdl2::rect::{Point, Rect};
-use std::time::Duration;
-use std::error::Error;
-use rand::Rng;
+use sdl2::rect::Point;
 
-const WINDOW_WIDTH: u32 = 900;
-const WINDOW_HEIGHT: u32 = 600;
-// const SQUARE_SIZE: f64 = 10.0;
-const BACKGROUND: Color = Color::RGB(255, 255, 255); // Color::RGB(18, 18, 18);
-const FOREGROUND: Color = Color::RGB(0, 0, 0); // Color::RGB(255, 150, 150);
+const DDOTS: usize = 30;
+const DOTS: usize = 10;
+const WINDOW_HEIGHT: u32 = 1000;
+const WINDOW_WIDTH: u32 = 1000;
 
 const SQUARE: [[f64; 2]; 4] = [
     [-1.0, -1.0],
@@ -28,7 +23,17 @@ fn mul_m_to_v([m0, m1]: [[f64; 2]; 2], [v0, v1]: [f64; 2]) -> [f64; 2] {
     ]
 }
 
-const DOTS: usize = 10;
+fn transl(a: [[f64; 2]; DDOTS], [v0, v1]: [f64; 2]) -> [[f64; 2]; DDOTS] {
+    // return [
+    //     m0[0] * v0 + m0[1] * v1,
+    //     m1[0] * v0 + m1[1] * v1
+    // ]
+    let mut res = [[0.0; 2]; DDOTS];
+    for i in 0..DDOTS {
+        res[i] = [a[i][0] + 0.5, a[i][1]];
+    }
+    res
+}
 
 fn my_sin() -> [(i32, i32); DOTS] {
     let mut res = [(0,0); DOTS];
@@ -42,23 +47,51 @@ fn my_sin() -> [(i32, i32); DOTS] {
     res
 }
 
-pub fn main_geometry() -> Result<(), Box<dyn Error>> {
+fn proj(a: [[f64; 3]; 100]) -> [[f64; 2]; 100] {
+    let mut res = [[0.0; 2]; 100];
+    for i in 0..100 {
+        res[i] = [a[i][0] * 3.0 / a[i][2], a[i][1] * 3.0 / a[i][2]]
+    }
+    res
+}
+
+// fn draw_levy(mut can: sdl2::render::Canvas<sdl2::video::Window>, (x1, y1): (f64, f64), (x2, y2): (f64, f64), i: i32) {
+
+//     if i == 0 {
+//         can.set_draw_color(Color::BLACK);
+//         can.present();
+//     } else {
+//         let (x3, y3) = (
+//             (x1 + x2) / 2.0 + (y2 - y1) / 2.0,
+//             (y1 + y2) / 2.0 - (y2 - y1) / 2.0);
+//         can.draw_line(Point::new(x1 as i32, y1 as i32), Point::new(x3 as i32, y3 as i32));
+//         can.draw_line(Point::new(x2 as i32, y2 as i32), Point::new(x3 as i32, y3 as i32));
+//         draw_levy(can.copy(), (x1, y1), (x3, y3), i-1);
+//         draw_levy(can.copy(), (x3, y3), (x2, y2), i-1);
+//     }
+// }
+
+fn polar_to_dec(rho: f64, phi: f64) -> (f64, f64) {
+    return (
+        f64::cos(phi) * rho,
+        f64::sin(phi) * rho
+    )
+}
+
+pub fn main_geometry() -> Result<(), Box<dyn std::error::Error>> {
     let sdl_context = sdl2::init()?;
-    // let video_subsystem = ;
-    let window = sdl_context.video()?.window("test", WINDOW_WIDTH, WINDOW_HEIGHT)
-        .position_centered()
-        .build()
-        .map_err(|e| e.to_string())?;
+    let mut canvas = sdl_context.video()?
+        .window("Geometry", WINDOW_WIDTH, WINDOW_HEIGHT)
+        .position_centered().build()?
+        .into_canvas().build()?;
 
-    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
-    // canvas.clear();
-    // canvas.present();
-
-    let mut event_pump = sdl_context.event_pump()?;
-    // let mut sz = 0;
-    // let q = my_sin();
-    // println!("{:?}", q);
+    // let mut s = [[0.0 as f64; 2]; DDOTS];
+    // let mut rng = rand::thread_rng();
+    // for i in 0..DDOTS {
+    //     s[i] = [rng.gen_range(-10.0, 10.0), rng.gen_range(-10.0, 10.0)]
+    // }
     // let mut theta = 0.0;
+    let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -70,9 +103,9 @@ pub fn main_geometry() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        canvas.set_draw_color(BACKGROUND);
+        canvas.set_draw_color(Color::WHITE);
         canvas.clear();
-        canvas.set_draw_color(FOREGROUND);
+        canvas.set_draw_color(Color::BLACK);
 
         // i = (i+1) % 255;
         // sz = (sz as f64 + 0.1) as i32 % 10;
@@ -112,12 +145,31 @@ pub fn main_geometry() -> Result<(), Box<dyn Error>> {
         //                      Point::new(q[i+1].0 as i32, q[i+1].1 as i32))?
         // }
         // ------------------------------------------------------------
+        // for i in 0..20 {
+        // s = transl(s, [0.0, 1.0]);
+        // }
+        // for i in 0..DDOTS {
+        //     let x1 = WINDOW_WIDTH  as f64 / 2.0 + 50.0 * s[i][0];
+        //     let y1 = WINDOW_HEIGHT as f64 / 2.0 + 50.0 * s[i][1];
+        //     canvas.draw_point(Point::new(x1 as i32, y1 as i32))?;
+        // }
+        let (x1, y1) = (100, 100);
+        let (x2, y2) = (100, 200);
+        let (x3, y3) = (150, 150); //x1 + (y2 - y1) / 2
+
+        let z: Vec<(i32, i32)> = Vec::new();
+        canvas.draw_line(Point::new(x1 as i32, y1 as i32),
+                         Point::new(x3 as i32, y3 as i32))?;
+        canvas.draw_line(Point::new(x2 as i32, y2 as i32),
+                         Point::new(x3 as i32, y3 as i32))?;
+        // ------------------------------------------------------------
+        
         canvas.present();
 
-        const FPS: u32 = 2;
-        let dt = 1.0 / FPS as f64;
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / FPS));
-        theta += 2.0 * dt;
+        const FPS: u32 = 10;
+        // let dt = 1.0 / FPS as f64;
+        std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / FPS));
+        // theta += 2.0 * dt;
     }
 
     Ok(())
