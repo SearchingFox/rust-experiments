@@ -1,2 +1,5 @@
 target/
 Cargo.lock
+notes-graph/Data
+imgs-to-pdf/img
+*.pdf
