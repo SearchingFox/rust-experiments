@@ -5,14 +5,14 @@ use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
+use sdl2::render::{Texture, TextureQuery};
+use std::io::Write;
 
-const WINDOW_WIDTH: u32 = 1920;
-const WINDOW_HEIGHT: u32 = 1080;
-const BACKGROUND_COLOR: Color = Color::RGB(45, 45, 45);
-const FOREGROUND_COLOR: Color = Color::RGB(200, 200, 200);
+const BACKGROUND_COLOR: Color = Color::RGB(35, 35, 35);
+const FOREGROUND_COLOR: Color = Color::RGB(210, 210, 210);
 const SIZE: u32 = 18;
 
-fn get_notes(folder_path: &str) -> (Vec<String>, Vec<Rect>, Vec<Vec<String>>) {
+fn get_notes(folder_path: &str) -> (Vec<String>, Vec<(i32, i32)>, Vec<Vec<String>>) {
     let mut rng = rand::thread_rng();
     let mut names = Vec::new();
     let mut rects = Vec::new();
@@ -20,15 +20,9 @@ fn get_notes(folder_path: &str) -> (Vec<String>, Vec<Rect>, Vec<Vec<String>>) {
 
     for f in std::fs::read_dir(folder_path).unwrap().take(70) {
         let file_path = f.unwrap().path();
-        let name = file_path.file_stem().unwrap().to_str().unwrap().to_string();
 
-        names.push(name);
-        rects.push(Rect::new(
-            rng.gen_range(10..1900),
-            rng.gen_range(10..1040),
-            SIZE,
-            SIZE,
-        ));
+        names.push(file_path.file_stem().unwrap().to_str().unwrap().to_string());
+        rects.push((rng.gen_range(10..1900), rng.gen_range(10..1040)));
         links.push(
             Regex::new(r"\[\[.*\]\]")
                 .unwrap()
@@ -49,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut event_pump = sdl_context.event_pump()?;
     let mut canvas = sdl_context
         .video()?
-        .window("ObsVis", WINDOW_WIDTH, WINDOW_HEIGHT)
+        .window("Notes Graph", 0, 0)
         .maximized()
         .vulkan()
         .build()?
@@ -58,18 +52,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let texture_creator = canvas.texture_creator();
 
     let ttf_context = sdl2::ttf::init()?;
-    let font = ttf_context.load_font("FiraCode-Regular.ttf", 24)?;
+    let font = ttf_context.load_font("FiraCode-Regular.ttf", 18)?;
 
-    let mut hit_node: Option<usize> = None;
-    let (names, mut rects, links) = get_notes("Data");
-    let textures = names
+    let (names, rects_coords, links) = if std::path::Path::new("data.bin").exists() {
+        bincode::deserialize(&std::fs::read("data.bin").expect("Reading from the data file failed"))
+            .expect("Data deserialization failed")
+    } else {
+        get_notes("Data")
+    };
+    let textures_cache: Vec<Texture> = names
         .iter()
         .map(|name| {
             texture_creator
                 .create_texture_from_surface(&font.render(&name).blended(FOREGROUND_COLOR).unwrap())
                 .unwrap() // blended is slow but nice looking
         })
-        .collect::<Vec<_>>();
+        .collect();
+    let mut rects: Vec<Rect> = rects_coords
+        .iter()
+        .map(|(x, y)| Rect::new(*x, *y, SIZE, SIZE)) // Maybe use from center but there are rounding errors
+        .collect();
+    let mut hit_node = None;
 
     'running: loop {
         for event in event_pump.poll_iter() {
@@ -90,11 +93,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .position(|rect| rect.contains_point(Point::new(x, y)));
                 }
                 Event::MouseMotion {
-                    mousestate, x, y, ..
+                    mousestate,
+                    xrel,
+                    yrel,
+                    ..
                 } => {
                     if mousestate.left() {
                         match hit_node {
-                            Some(i) => rects[i].center_on(Point::new(x, y)),
+                            Some(i) => {
+                                rects[i].offset(xrel, yrel);
+                                for link in links[i]
+                                    .iter()
+                                    .flat_map(|a| names.iter().position(|b| a == b))
+                                    .collect::<Vec<_>>()
+                                {
+                                    rects[link].offset(xrel / 2, yrel / 2);
+                                }
+                            }
                             None => {}
                         }
                     }
@@ -111,12 +126,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for i in 0..names.len() {
             canvas.fill_rect(Some(rects[i]))?;
 
-            let sdl2::render::TextureQuery { width, height, .. } = textures[i].query();
+            let TextureQuery { width, height, .. } = textures_cache[i].query();
             canvas.copy(
-                &textures[i],
+                &textures_cache[i],
                 None,
                 Some(Rect::from_center(
-                    rects[i].center().offset(0, -28),
+                    rects[i].center().offset(0, -24),
                     width,
                     height,
                 )),
@@ -127,7 +142,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for i in 0..names.len() {
             for link_name in &links[i] {
                 match names.iter().position(|name| name == link_name) {
-                    Some(end) => canvas.draw_line(rects[i].center(), rects[end].center())?,
+                    Some(end) => {
+                        canvas.draw_line(rects[i].center(), rects[end].center())?;
+                    }
                     None => {}
                 }
             }
@@ -137,6 +154,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         std::thread::sleep(std::time::Duration::new(0, 1_000_000_000 / 120));
     }
+
+    let mut file = std::fs::File::create("data.bin").expect("Creation of data file failed");
+    file.write_all(
+        &bincode::serialize(&(
+            names,
+            rects.iter().map(|r| (r.x, r.y)).collect::<Vec<_>>(),
+            links,
+        ))
+        .expect("Data serialization failed"),
+    )
+    .expect("Write to data file failed");
 
     Ok(())
 }
