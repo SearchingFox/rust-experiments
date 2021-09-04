@@ -9,9 +9,9 @@ mod ifs;
 mod quaternions;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // fractals::main_fractals()
+    fractals::main_fractals()
     // geometry::main_geometry()
-    gol::main_gol()
+    // gol::main_gol()
     // ifs::main_ifs()
     // quaternions::main_quaternions()
 }
