@@ -9,18 +9,10 @@ const DOTS: usize = 10;
 const WINDOW_HEIGHT: u32 = 1000;
 const WINDOW_WIDTH: u32 = 1000;
 
-const SQUARE: [[f64; 2]; 4] = [
-    [-1.0, -1.0],
-    [-1.0,  1.0],
-    [ 1.0,  1.0],
-    [ 1.0, -1.0]
-];
+const SQUARE: [[f64; 2]; 4] = [[-1.0, -1.0], [-1.0, 1.0], [1.0, 1.0], [1.0, -1.0]];
 
 fn mul_m_to_v([m0, m1]: [[f64; 2]; 2], [v0, v1]: [f64; 2]) -> [f64; 2] {
-    return [
-        m0[0] * v0 + m0[1] * v1,
-        m1[0] * v0 + m1[1] * v1
-    ]
+    return [m0[0] * v0 + m0[1] * v1, m1[0] * v0 + m1[1] * v1];
 }
 
 fn transl(a: [[f64; 2]; DDOTS], [v0, v1]: [f64; 2]) -> [[f64; 2]; DDOTS] {
@@ -36,12 +28,14 @@ fn transl(a: [[f64; 2]; DDOTS], [v0, v1]: [f64; 2]) -> [[f64; 2]; DDOTS] {
 }
 
 fn my_sin() -> [(i32, i32); DOTS] {
-    let mut res = [(0,0); DOTS];
+    let mut res = [(0, 0); DOTS];
     let h = 3.14 / DOTS as f64;
     let mut s = 0.0;
     for i in 0..DOTS {
-        res[i] = (450 + f64::round(s*100.0) as i32,
-                  300 - f64::round(f64::sin(s)*100.0) as i32);
+        res[i] = (
+            450 + f64::round(s * 100.0) as i32,
+            300 - f64::round(f64::sin(s) * 100.0) as i32,
+        );
         s += h;
     }
     res
@@ -72,18 +66,18 @@ fn proj(a: [[f64; 3]; 100]) -> [[f64; 2]; 100] {
 // }
 
 fn polar_to_dec(rho: f64, phi: f64) -> (f64, f64) {
-    return (
-        f64::cos(phi) * rho,
-        f64::sin(phi) * rho
-    )
+    return (f64::cos(phi) * rho, f64::sin(phi) * rho);
 }
 
 pub fn main_geometry() -> Result<(), Box<dyn std::error::Error>> {
     let sdl_context = sdl2::init()?;
-    let mut canvas = sdl_context.video()?
+    let mut canvas = sdl_context
+        .video()?
         .window("Geometry", WINDOW_WIDTH, WINDOW_HEIGHT)
-        .position_centered().build()?
-        .into_canvas().build()?;
+        .position_centered()
+        .build()?
+        .into_canvas()
+        .build()?;
 
     // let mut s = [[0.0 as f64; 2]; DDOTS];
     // let mut rng = rand::thread_rng();
@@ -95,10 +89,11 @@ pub fn main_geometry() -> Result<(), Box<dyn std::error::Error>> {
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. } |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                    break 'running
-                },
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'running,
                 _ => {}
             }
         }
@@ -158,12 +153,16 @@ pub fn main_geometry() -> Result<(), Box<dyn std::error::Error>> {
         let (x3, y3) = (150, 150); //x1 + (y2 - y1) / 2
 
         let z: Vec<(i32, i32)> = Vec::new();
-        canvas.draw_line(Point::new(x1 as i32, y1 as i32),
-                         Point::new(x3 as i32, y3 as i32))?;
-        canvas.draw_line(Point::new(x2 as i32, y2 as i32),
-                         Point::new(x3 as i32, y3 as i32))?;
+        canvas.draw_line(
+            Point::new(x1 as i32, y1 as i32),
+            Point::new(x3 as i32, y3 as i32),
+        )?;
+        canvas.draw_line(
+            Point::new(x2 as i32, y2 as i32),
+            Point::new(x3 as i32, y3 as i32),
+        )?;
         // ------------------------------------------------------------
-        
+
         canvas.present();
 
         const FPS: u32 = 10;
