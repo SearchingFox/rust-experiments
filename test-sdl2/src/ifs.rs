@@ -1,6 +1,6 @@
-use rand::Rng;
 use rand::distributions::{Distribution, Standard};
 use rand::seq::SliceRandom;
+use rand::Rng;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
@@ -11,13 +11,13 @@ use sdl2::video::Window;
 use std::error::Error;
 use std::time::Duration;
 
-const WINDOW_WIDTH: u32  = 1920;
+const WINDOW_WIDTH: u32 = 1920;
 const WINDOW_HEIGHT: u32 = 1080;
 
 #[derive(Debug, Clone, Copy)]
 struct PPoint {
     x: f64,
-    y: f64
+    y: f64,
 }
 
 impl Distribution<PPoint> for Standard {
@@ -25,7 +25,7 @@ impl Distribution<PPoint> for Standard {
         let (rand_x, rand_y) = rng.gen::<(f64, f64)>();
         PPoint {
             x: rand_x * 2.0 - 1.0,
-            y: rand_y * 2.0 - 1.0
+            y: rand_y * 2.0 - 1.0,
         }
     }
 }
@@ -47,7 +47,7 @@ impl Distribution<PPoint> for Standard {
 // }
 
 fn v0((x, y): (f64, f64)) -> (f64, f64) {
-    (2.0*x, 2.0*y)
+    (2.0 * x, 2.0 * y)
 }
 
 fn v1((x, y): (f64, f64)) -> (f64, f64) {
@@ -60,21 +60,16 @@ fn v2((x, y): (f64, f64)) -> (f64, f64) {
 }
 
 fn f0(a: (f64, f64)) -> (f64, f64) {
-    return ( v0(a).0 + v1(a).0 + v2(a).0
-           , v0(a).1 + v1(a).1 + v2(a).1 )
+    return (v0(a).0 + v1(a).0 + v2(a).0, v0(a).1 + v1(a).1 + v2(a).1);
 }
 
 fn f1(a: (f64, f64)) -> (f64, f64) {
-    return ( v0(a).0 + v1(a).0 + v2(a).0
-           , v0(a).1 + v1(a).1 + v2(a).1 )
+    return (v0(a).0 + v1(a).0 + v2(a).0, v0(a).1 + v1(a).1 + v2(a).1);
 }
 
 fn f2(a: (f64, f64)) -> (f64, f64) {
-    return ( v0(a).0 + v1(a).0 + v2(a).0
-           , v0(a).1 + v1(a).1 + v2(a).1 )
+    return (v0(a).0 + v1(a).0 + v2(a).0, v0(a).1 + v1(a).1 + v2(a).1);
 }
-
-
 
 pub fn main_ifs() -> Result<(), Box<dyn Error>> {
     let mut histogram: [[f64; 100]; 100];
