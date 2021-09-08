@@ -18,7 +18,7 @@ fn get_notes(folder_path: &str) -> (Vec<String>, Vec<(i32, i32)>, Vec<Vec<String
     let mut rects = Vec::new();
     let mut links = Vec::new();
 
-    for f in std::fs::read_dir(folder_path).unwrap().take(70) {
+    for f in std::fs::read_dir(folder_path).expect("Couldn't read folder") {
         let file_path = f.unwrap().path();
 
         names.push(file_path.file_stem().unwrap().to_str().unwrap().to_string());
@@ -31,7 +31,7 @@ fn get_notes(folder_path: &str) -> (Vec<String>, Vec<(i32, i32)>, Vec<Vec<String
                     let t = x.as_str();
                     t[2..t.len() - 2].to_string()
                 })
-                .collect::<Vec<_>>(),
+                .collect(),
         );
     }
 
@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let texture_creator = canvas.texture_creator();
 
     let ttf_context = sdl2::ttf::init()?;
-    let font = ttf_context.load_font("FiraCode-Regular.ttf", 18)?;
+    let font = ttf_context.load_font("VictorMono-Medium.ttf", 18)?;
 
     let (names, rects_coords, links) = if std::path::Path::new("data.bin").exists() {
         bincode::deserialize(&std::fs::read("data.bin").expect("Reading from the data file failed"))
@@ -64,8 +64,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .map(|name| {
             texture_creator
-                .create_texture_from_surface(&font.render(&name).blended(FOREGROUND_COLOR).unwrap())
-                .unwrap() // blended is slow but nice looking
+                .create_texture_from_surface(&font.render(&name).blended(FOREGROUND_COLOR).unwrap()) // blended is slow but nice looking
+                .unwrap()
         })
         .collect();
     let mut rects: Vec<Rect> = rects_coords
@@ -142,9 +142,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for i in 0..names.len() {
             for link_name in &links[i] {
                 match names.iter().position(|name| name == link_name) {
-                    Some(end) => {
-                        canvas.draw_line(rects[i].center(), rects[end].center())?;
-                    }
+                    Some(end) => canvas.draw_line(rects[i].center(), rects[end].center())?,
                     None => {}
                 }
             }
