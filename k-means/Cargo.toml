@@ -1,0 +1,9 @@
+[package]
+name = "k-means"
+version = "0.1.0"
+authors = ["SearchingFox <n3tstrang3r@yandex.ru>"]
+edition = "2018"
+
+[dependencies]
+rand = "0"
+plotlib = "0"

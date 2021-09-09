@@ -1,12 +1,10 @@
-// extern crate rand;
-// extern crate plotlib;
-use rand::Rng;
-use rand::distributions::{Distribution, Standard};
-use rand::seq::SliceRandom;
 use plotlib::page::Page;
 use plotlib::scatter::{Scatter, Style};
 use plotlib::style::{Marker, Point};
 use plotlib::view::ContinuousView;
+use rand::Rng;
+use rand::distributions::{Distribution, Standard};
+use rand::seq::SliceRandom;
 
 #[derive(Debug, Clone, Copy)]
 struct PPoint {
@@ -23,6 +21,19 @@ impl Distribution<PPoint> for Standard {
         }
     }
 }
+
+// impl Distribution<Vec<PPoint>> for Standard {
+//     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Vec<PPoint> {
+//         let (rand_x, rand_y) = rng.gen::<(f64, f64)>();
+//         let t = Vec::new();
+//         let a = PPoint {
+//             x: rand_x * 10.0,
+//             y: rand_y * 10.0,
+//         };
+//         t.push(a);
+//         t
+//     }
+// }
 
 struct Kmeans {
     clcn: Vec<Vec<f64>>,
@@ -45,7 +56,7 @@ fn norm(x: Vec<f64>) -> f64 {
 
 fn sub(a: Vec<f64>, b: Vec<f64>) -> Vec<f64> {
     if a.len() != b.len() {
-        println!("Length doesn't match")
+        println!("Length doesn't match") // TODO: error
     }
     let mut z: Vec<f64> = vec![0.0];
     for (i, (aval, bval)) in a.iter().zip(&b).enumerate() {
@@ -127,7 +138,7 @@ fn fit(mut km: Kmeans, x: Vec<Vec<f64>>) -> Kmeans {
     return km;
 }
 
-fn main() {
+fn main() -> Result<(), String> {
     let mut rng = rand::thread_rng();
     let mut arr: Vec<PPoint> = Vec::new();
     for _ in 0..100 {
@@ -136,20 +147,20 @@ fn main() {
 
     let km = Kmeans {
         clcn: Vec::new(),
-        lbs: Vec::new(),
+        lbs:  Vec::new(),
         ncls: 3,
-        tol: 0.001
+        tol:  0.001
     };
 
-    fit(km, vec![vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
-                vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
-                vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
-                vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
-                vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
-                vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
-                vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
-                vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
-                vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0]]);
+    // fit(km, vec![vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
+    //             vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
+    //             vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
+    //             vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
+    //             vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
+    //             vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
+    //             vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
+    //             vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0],
+    //             vec![1.0, 2.0, 100.0, 12.0, 43.0, 463.0, 25.0, 4.20, 6.0, 86.0]]);
 
     let s: Scatter = Scatter::from_slice(&to_list(arr)[..]).style(
         &Style::new()
@@ -159,5 +170,6 @@ fn main() {
         .add(&s)
         .x_range(0., 10.)
         .y_range(0., 10.);
-    Page::single(&v).save("scatter.svg").unwrap();
+    Page::single(&v).save("scatter.svg").map_err(|e| e.to_string())?;
+    Ok(())
 }
