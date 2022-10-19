@@ -12,7 +12,7 @@ const WINDOW_WIDTH: u32 = 1000;
 const SQUARE: [[f64; 2]; 4] = [[-1.0, -1.0], [-1.0, 1.0], [1.0, 1.0], [1.0, -1.0]];
 
 fn mul_m_to_v([m0, m1]: [[f64; 2]; 2], [v0, v1]: [f64; 2]) -> [f64; 2] {
-    return [m0[0] * v0 + m0[1] * v1, m1[0] * v0 + m1[1] * v1];
+    [m0[0] * v0 + m0[1] * v1, m1[0] * v0 + m1[1] * v1]
 }
 
 fn transl(a: [[f64; 2]; DDOTS], [v0, v1]: [f64; 2]) -> [[f64; 2]; DDOTS] {
@@ -66,7 +66,7 @@ fn proj(a: [[f64; 3]; 100]) -> [[f64; 2]; 100] {
 // }
 
 fn polar_to_dec(rho: f64, phi: f64) -> (f64, f64) {
-    return (f64::cos(phi) * rho, f64::sin(phi) * rho);
+    (f64::cos(phi) * rho, f64::sin(phi) * rho)
 }
 
 pub fn main_geometry() -> Result<(), Box<dyn std::error::Error>> {
@@ -148,19 +148,21 @@ pub fn main_geometry() -> Result<(), Box<dyn std::error::Error>> {
         //     let y1 = WINDOW_HEIGHT as f64 / 2.0 + 50.0 * s[i][1];
         //     canvas.draw_point(Point::new(x1 as i32, y1 as i32))?;
         // }
-        let (x1, y1) = (100, 100);
-        let (x2, y2) = (100, 200);
-        let (x3, y3) = (150, 150); //x1 + (y2 - y1) / 2
+        //         let (x1, y1) = (100, 100);
+        // let (x2, y2) = (100, 200);
+        // let (x3, y3) = (150, 150); //x1 + (y2 - y1) / 2
 
-        let z: Vec<(i32, i32)> = Vec::new();
-        canvas.draw_line(
-            Point::new(x1 as i32, y1 as i32),
-            Point::new(x3 as i32, y3 as i32),
-        )?;
-        canvas.draw_line(
-            Point::new(x2 as i32, y2 as i32),
-            Point::new(x3 as i32, y3 as i32),
-        )?;
+        // let z: Vec<(i32, i32)> = Vec::new();
+        // canvas.draw_line(
+        //     Point::new(x1 as i32, y1 as i32),
+        //     Point::new(x3 as i32, y3 as i32),
+        // )?;
+        // canvas.draw_line(
+        //     Point::new(x2 as i32, y2 as i32),
+        //     Point::new(x3 as i32, y3 as i32),
+        // )?;
+        let p0 = Point::new(100, 100);
+        let p1 = Point::new(200, 200);
         // ------------------------------------------------------------
 
         canvas.present();
