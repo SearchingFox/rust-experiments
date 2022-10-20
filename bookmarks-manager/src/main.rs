@@ -52,12 +52,12 @@ impl Ord for Bookmark {
     }
 }
 
-fn get_from_file(file_path: &Path) -> Bookmarks {
+fn get_from_txt(file_path: &Path) -> Bookmarks {
     fs::read_to_string(file_path)
         .unwrap()
         .lines()
         .collect::<Vec<_>>()
-        .chunks(2)
+        .chunks_exact(2)
         .map(|x| Bookmark {
             title: x[0].to_string(),
             url: x[1].to_string(),
@@ -101,10 +101,18 @@ fn get_from_folder(folder_path: &Path) -> Bookmarks {
         .collect()
 }
 
+fn get_from_file(file_path: &Path) -> Bookmarks {
+    match file_path.extension().unwrap_or_default().to_str().unwrap_or_default() {
+        "md" => get_from_txt(file_path),
+        "html" => get_from_html(file_path),
+        &_ => HashSet::new()
+    }
+}
+
 fn del_existing(all_urls: Bookmarks, test_urls: Bookmarks) -> Bookmarks {
     test_urls
-        .iter()
-        .flat_map(|&b| all_urls.iter().find(|&x| x.url == b.url).map_or(Some(b), |_| None))
+        .into_iter()
+        .flat_map(|b| all_urls.iter().find(|&x| x.url == b.url).map_or(Some(b), |_| None))
         .collect()
 }
 
@@ -160,17 +168,30 @@ fn main() {
                 .expect("Couldn't write output file");
             }
         }
+        "--dedup" => {
+            let file_path = Path::new(&args[2]);
+            let mut all: HashSet<Bookmark> = HashSet::new();
+
+            for folder_path in &args[3..] {
+                 all.extend(get_from_folder(Path::new(folder_path)));
+            }
+
+            let out = get_from_file(file_path).difference(&all).into_iter().map(|x| x.to_string(true)).collect::<Vec<_>>();
+            fs::write("C:/Users/Asus/Desktop/out.txt", out.join("\n"));
+            println!("{}", out.len());
+        }
         _ => {
             let format = &args[2];
             let source_path = Path::new(&args[3]);
             let source = get_from_file(source_path);
+            let l = source.len();
 
             let all_urls = HashSet::new();
 
             let result = del_existing(all_urls, source);
             println!("{} links are not in bookmarks", result.len());
 
-            if !result.is_empty() && result.len() < source.len() {
+            if !result.is_empty() && result.len() < l {
                 fs::write(
                     source_path.parent().unwrap().join(
                         source_path
@@ -181,7 +202,7 @@ fn main() {
                             .to_string()
                             + "_uniq_rusted.txt",
                     ),
-                    result.join("\n"),
+                    result.into_iter().map(|x| x.to_string(true)).collect::<Vec<_>>().join("\n"),
                 )
                 .expect("Write to output file failed");
             }
