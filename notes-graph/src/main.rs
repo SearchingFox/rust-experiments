@@ -7,12 +7,13 @@ use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
 use sdl2::render::{Texture, TextureQuery};
 use std::io::Write;
+use std::path::Path;
 
 const BACKGROUND_COLOR: Color = Color::RGB(35, 35, 35);
 const FOREGROUND_COLOR: Color = Color::RGB(210, 210, 210);
 const SIZE: u32 = 18;
 
-fn get_notes(folder_path: &str) -> (Vec<String>, Vec<(i32, i32)>, Vec<Vec<String>>) {
+fn get_notes(folder_path: &Path) -> (Vec<String>, Vec<(i32, i32)>, Vec<Vec<String>>) {
     let mut rng = rand::thread_rng();
     let mut names = Vec::new();
     let mut rects = Vec::new();
@@ -58,13 +59,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         bincode::deserialize(&std::fs::read("data.bin").expect("Reading from the data file failed"))
             .expect("Data deserialization failed")
     } else {
-        get_notes("Data")
+        get_notes(Path::new("Data"))
     };
     let textures_cache: Vec<Texture> = names
         .iter()
         .map(|name| {
             texture_creator
-                .create_texture_from_surface(&font.render(&name).blended(FOREGROUND_COLOR).unwrap()) // blended is slow but nice looking
+                .create_texture_from_surface(&font.render(name).blended(FOREGROUND_COLOR).unwrap()) // blended is slow but nice looking
                 .unwrap()
         })
         .collect();
@@ -140,7 +141,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Edges
         for i in 0..names.len() {
-            for link_name in &links[i] {
+            for link_name in links[i].iter() {
                 match names.iter().position(|name| name == link_name) {
                     Some(end) => canvas.draw_line(rects[i].center(), rects[end].center())?,
                     None => {}
