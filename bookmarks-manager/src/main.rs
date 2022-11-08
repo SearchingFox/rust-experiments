@@ -83,8 +83,9 @@ fn get_from_html(file_path: &Path) -> Bookmarks {
         .collect()
 }
 
-fn get_from_md(inp: String) -> Bookmarks {
-    inp.lines()
+fn get_from_md(file_path: &Path) -> Bookmarks {
+    fs::read_to_string(file_path).unwrap()
+        .lines()
         .map(|x| {
             let splitp = x.rfind("]").unwrap();
             let title = x[x.find("[").unwrap() + 1..splitp].to_string();
@@ -102,17 +103,25 @@ fn get_from_folder(folder_path: &Path) -> Bookmarks {
 }
 
 fn get_from_file(file_path: &Path) -> Bookmarks {
-    match file_path.extension().unwrap_or_default().to_str().unwrap_or_default() {
-        "md" => get_from_txt(file_path),
-        "html" => get_from_html(file_path),
-        &_ => HashSet::new()
+    match file_path
+        .extension()
+        .and_then(OsStr::to_str)
+    {
+        Some("md") => get_from_txt(file_path),
+        Some("html") => get_from_html(file_path),
+        _ => HashSet::new(),
     }
 }
 
 fn del_existing(all_urls: Bookmarks, test_urls: Bookmarks) -> Bookmarks {
     test_urls
         .into_iter()
-        .flat_map(|b| all_urls.iter().find(|&x| x.url == b.url).map_or(Some(b), |_| None))
+        .flat_map(|b| {
+            all_urls
+                .iter()
+                .find(|&x| x.url == b.url)
+                .map_or(Some(b), |_| None)
+        })
         .collect()
 }
 
@@ -125,7 +134,7 @@ fn main() {
                 let p = Path::new(i);
                 fs::write(
                     p.with_extension("txt"),
-                    get_from_html(&p)
+                    get_from_md(&p)
                         .into_iter()
                         .map(|x| x.to_string(true))
                         .collect::<Vec<_>>()
@@ -150,7 +159,10 @@ fn main() {
         }
         "--spt" => {
             let file_path = Path::new(&args[2]);
-            let chunk_size: usize = args[3].trim_end().parse().expect("Couldn't parse chunk size");
+            let chunk_size: usize = args[3]
+                .trim_end()
+                .parse()
+                .expect("Couldn't parse chunk size");
             let mut inp = get_from_file(file_path).into_iter().collect::<Vec<_>>();
             inp.sort();
 
@@ -173,10 +185,14 @@ fn main() {
             let mut all: HashSet<Bookmark> = HashSet::new();
 
             for folder_path in &args[3..] {
-                 all.extend(get_from_folder(Path::new(folder_path)));
+                all.extend(get_from_folder(Path::new(folder_path)));
             }
 
-            let out = get_from_file(file_path).difference(&all).into_iter().map(|x| x.to_string(true)).collect::<Vec<_>>();
+            let out = get_from_file(file_path)
+                .difference(&all)
+                .into_iter()
+                .map(|x| x.to_string(true))
+                .collect::<Vec<_>>();
             fs::write("C:/Users/Asus/Desktop/out.txt", out.join("\n"));
             println!("{}", out.len());
         }
@@ -202,7 +218,11 @@ fn main() {
                             .to_string()
                             + "_uniq_rusted.txt",
                     ),
-                    result.into_iter().map(|x| x.to_string(true)).collect::<Vec<_>>().join("\n"),
+                    result
+                        .into_iter()
+                        .map(|x| x.to_string(true))
+                        .collect::<Vec<_>>()
+                        .join("\n"),
                 )
                 .expect("Write to output file failed");
             }
