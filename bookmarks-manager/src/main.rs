@@ -1,12 +1,22 @@
-use std::collections::HashSet;
+#![feature(path_file_prefix)]
+
+use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::path::Path;
 
-#[derive(Debug, Eq)]
+use serde::Deserialize;
+use serde_json::from_str;
+
+#[derive(Debug, Eq, Hash, Clone, Deserialize)]
 struct Bookmark {
     title: String,
     url: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct JsonFile {
+    windows: HashMap<String, HashMap<String, Bookmark>>,
 }
 
 type Bookmarks = HashSet<Bookmark>;
@@ -31,12 +41,6 @@ impl Bookmark {
 impl PartialEq for Bookmark {
     fn eq(&self, other: &Self) -> bool {
         self.url == other.url
-    }
-}
-
-impl Hash for Bookmark {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.url.hash(state)
     }
 }
 
@@ -84,7 +88,8 @@ fn get_from_html(file_path: &Path) -> Bookmarks {
 }
 
 fn get_from_md(file_path: &Path) -> Bookmarks {
-    fs::read_to_string(file_path).unwrap()
+    fs::read_to_string(file_path)
+        .unwrap()
         .lines()
         .map(|x| {
             let splitp = x.rfind("]").unwrap();
@@ -92,6 +97,14 @@ fn get_from_md(file_path: &Path) -> Bookmarks {
             let url = x[splitp + 2..x.rfind(")").unwrap()].to_string();
             Bookmark { title, url }
         })
+        .collect()
+}
+
+fn get_from_json(file_path: &Path) -> Bookmarks {
+    let res: Vec<JsonFile> = from_str(&fs::read_to_string(file_path).expect("Couldn't read file"))
+        .expect("Couldn't parse json file");
+    res.into_iter()
+        .flat_map(|x| x.windows.into_values().flat_map(|y| y.into_values()))
         .collect()
 }
 
@@ -103,38 +116,24 @@ fn get_from_folder(folder_path: &Path) -> Bookmarks {
 }
 
 fn get_from_file(file_path: &Path) -> Bookmarks {
-    match file_path
-        .extension()
-        .and_then(OsStr::to_str)
-    {
-        Some("md") => get_from_txt(file_path),
+    match file_path.extension().and_then(std::ffi::OsStr::to_str) {
+        Some("md") => get_from_txt(file_path), // this is intentional
+        Some("txt") => get_from_txt(file_path),
         Some("html") => get_from_html(file_path),
+        Some("json") => get_from_json(file_path),
         _ => HashSet::new(),
     }
 }
 
-fn del_existing(all_urls: Bookmarks, test_urls: Bookmarks) -> Bookmarks {
-    test_urls
-        .into_iter()
-        .flat_map(|b| {
-            all_urls
-                .iter()
-                .find(|&x| x.url == b.url)
-                .map_or(Some(b), |_| None)
-        })
-        .collect()
-}
-
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
-    let cmd = args[1].as_str();
-    match cmd {
+    match args[1].as_str() {
         "--htt" => {
             for i in &args[2..] {
                 let p = Path::new(i);
                 fs::write(
-                    p.with_extension("txt"),
-                    get_from_md(&p)
+                    p.with_extension("md"),
+                    get_from_file(&p)
                         .into_iter()
                         .map(|x| x.to_string(true))
                         .collect::<Vec<_>>()
@@ -144,9 +143,9 @@ fn main() {
             }
         }
         "--uni" => {
-            let mut res: HashSet<Bookmark> = HashSet::new();
+            let mut res: Bookmarks = HashSet::new();
             for i in &args[2..] {
-                res.extend(get_from_html(Path::new(&i)));
+                res.extend(get_from_file(Path::new(&i)));
             }
             fs::write(
                 "uni.txt",
@@ -163,15 +162,22 @@ fn main() {
                 .trim_end()
                 .parse()
                 .expect("Couldn't parse chunk size");
-            let mut inp = get_from_file(file_path).into_iter().collect::<Vec<_>>();
+            let mut inp: Vec<Bookmark> = get_from_file(file_path).into_iter().collect();
             inp.sort();
 
             for (i, el) in inp.chunks(chunk_size).enumerate() {
                 fs::write(
-                    file_path.file_stem().unwrap().to_str().unwrap().to_string()
-                        + "_"
-                        + &(i + 1).to_string()
-                        + ".md",
+                    file_path.with_file_name(
+                        file_path
+                            .file_prefix()
+                            .unwrap()
+                            .to_str()
+                            .unwrap()
+                            .to_string()
+                            + "_"
+                            + &(i + 1).to_string()
+                            + ".md",
+                    ),
                     el.into_iter()
                         .map(|x| x.to_string(true))
                         .collect::<Vec<_>>()
@@ -193,18 +199,19 @@ fn main() {
                 .into_iter()
                 .map(|x| x.to_string(true))
                 .collect::<Vec<_>>();
-            fs::write("C:/Users/Asus/Desktop/out.txt", out.join("\n"));
+            fs::write("C:/Users/Asus/Desktop/out--dedup.txt", out.join("\n"))
+                .expect("Couldn't write to file");
             println!("{}", out.len());
         }
         _ => {
-            let format = &args[2];
+            // let format = &args[2];
             let source_path = Path::new(&args[3]);
             let source = get_from_file(source_path);
             let l = source.len();
 
-            let all_urls = HashSet::new();
+            let all_urls: Bookmarks = HashSet::new();
 
-            let result = del_existing(all_urls, source);
+            let result: Bookmarks = source.difference(&all_urls).cloned().collect();
             println!("{} links are not in bookmarks", result.len());
 
             if !result.is_empty() && result.len() < l {
